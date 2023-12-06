@@ -16,8 +16,8 @@ class ServerHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         self.handle_request("POST")
 
-    # def do_CONNECT(self):
-    #     self.handle_request("CONNECT")
+    def do_CONNECT(self):
+        self.handle_request("CONNECT")
 
     def handle_request(self, method):
         # Parsear la URL de destino
@@ -25,27 +25,44 @@ class ServerHandler(http.server.BaseHTTPRequestHandler):
         host = url_parts.netloc
         path = url_parts.path
         # Crear una conexión al servidor de destino
-        conn = http.client.HTTPConnection(host)
-        conn.request(method, path, body=self.rfile.read(int(self.headers.get('Content-Length', 0))), headers=self.headers)
+        print(f"Connecting to host: { str(url_parts) }")
+        print(self.path)
+        print(method)
+
+        if method == 'CONNECT':
+            conn = http.client.HTTPSConnection(host, port=443)
+            conn.request(method, path, headers=self.headers)
+
+
+        else:
+            conn = http.client.HTTPConnection(host)
+            conn.request(method, path, body=self.rfile.read(int(self.headers.get('Content-Length', 0))), headers=self.headers)
+            
         # Obtener la respuesta del servidor de destino
         response = conn.getresponse()
         # Leer el contenido de la respuesta
         data = response.read()
+        
         # Modificar los encabezados de respuesta para que el navegador reconozca al proxy
         self.send_response(response.status)
         self.send_header("Proxy-Agent", "MiProxy")
+        self.send_header("User-Agent", "py-proxy")
+        self.send_header("Server", "py-proxy")
+
         for header, value in response.getheaders():
             self.send_header(header, value)
         self.end_headers()
+
         # Enviar la respuesta al navegador
         self.wfile.write(data)
+
 
 def ProxyHandler():
     '''
     This function creates a TCP Server that will get the 
     navigator posts and handles it
     '''
-    PORT = 9099
+    PORT = 9080
     HOST = '127.0.0.1'
 
     # Open one TCP Server

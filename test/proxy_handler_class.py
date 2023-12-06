@@ -28,7 +28,7 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
         try:
             # Conectarse al servidor remoto
             remote = http.client.HTTPConnection(self.path)
-            remote.request("POST", self.path)
+            remote.request("GET", self.path)
             response = remote.getresponse()
 
             # Enviar la respuesta al cliente (navegador)
@@ -41,6 +41,20 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
         except Exception as e:
             '''Send the error if there is'''
             self.send_error(500, f"Error: {e}")
+    
+    def do_CONNECT(self):
+        print(self.path)
+        remote = http.client.HTTPConnection(self.path)
+        remote.request("GET", self.path)
+        response = remote.getresponse()
+
+        self.send_response(response.status)
+        for header, value in response.getheaders():
+            self.send_header(header, value)
+        self.send_response(response.code)
+        self.end_headers()
+        self.wfile.write(b"Hola bro XD")
+
 
 def run_proxy_server():
     '''Creates the server and listen in the following port'''
@@ -49,3 +63,5 @@ def run_proxy_server():
         print(f"Proxy en funcionamiento en el puerto {port}")
         server.serve_forever()
 
+
+run_proxy_server()
