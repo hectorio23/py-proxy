@@ -2,6 +2,7 @@ import socketserver
 import http.server
 import http.client
 import urllib.parse
+import signal, sys, ssl
 
 class ProxyHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -32,12 +33,16 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(response.read())
 
     def do_CONNECT(self):
-        # Obtener el host y el puerto del CONNECT request
         host, port = self.path.split(':')
         port = int(port)
 
+        # Desactivar la verificación del certificado (SOLO PARA PRUEBAS)
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+
         # Establecer la conexión con el servidor remoto
-        remote = http.client.HTTPSConnection(host, port, timeout=5)
+        remote = http.client.HTTPSConnection(host, port, context=context, timeout=5)
         remote.connect()
 
         # Enviar la respuesta al cliente (navegador)
@@ -57,8 +62,15 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
 
 def run_proxy_server():
     port = 9090
-    with socketserver.ThreadingTCPServer(("127.0.0.1", port), ProxyHandler) as server:
+    with http.server.HTTPServer(("127.0.0.1", port), ProxyHandler) as server:
         print(f"Proxy en funcionamiento en el puerto {port}")
         server.serve_forever()
+
+def handle(sign, frame):
+    print("\n\nKilling the process...\n")
+    server.shutdown()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, handle)
 
 run_proxy_server()
