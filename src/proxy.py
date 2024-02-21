@@ -1,8 +1,13 @@
-# /usr/bin/python3
+# Héctor Adán
+# https://github.com/hectorio23
 import socketserver
 import http.server
 import urllib.parse
 import http.client
+import json
+
+with open('./config.json', 'r') as config_file:
+    file = json.load(config_file)
 
 class ServerHandler(http.server.BaseHTTPRequestHandler):
     ''' ServerHandler   
@@ -36,7 +41,10 @@ class ServerHandler(http.server.BaseHTTPRequestHandler):
 
         else:
             conn = http.client.HTTPConnection(host)
-            conn.request(method, path, body=self.rfile.read(int(self.headers.get('Content-Length', 0))), headers=self.headers)
+            conn.request(method, path, body=self.rfile.read(
+                int(self.headers.get('Content-Length', 0))), 
+                headers=self.headers
+            )
             
         # Obtener la respuesta del servidor de destino
         response = conn.getresponse()
@@ -56,19 +64,21 @@ class ServerHandler(http.server.BaseHTTPRequestHandler):
         # Enviar la respuesta al navegador
         self.wfile.write(data)
 
+class ProxyServer:
+    _instance = None
 
-def ProxyHandler():
-    '''
-    This function creates a TCP Server that will get the 
-    navigator posts and handles it
-    '''
-    PORT = 9080
-    HOST = '127.0.0.1'
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.PORT = file['PORT']
+            cls._instance.HOST = file['HOST']
+        return cls._instance
 
-    # Open one TCP Server
-    with socketserver.ThreadingTCPServer((HOST, PORT), ServerHandler) as server:
-        print(f"Server serving on ({HOST}, {PORT})")
-        server.serve_forever()
+    def run(self):
+        with socketserver.ThreadingTCPServer((self.HOST, self.PORT), ServerHandler) as server:
+            print(f"Server serving on ({self.HOST}, {self.PORT})")
+            server.serve_forever()
 
 if __name__ == '__main__':
-    ProxyHandler()
+    proxy_server = ProxyServer()
+    proxy_server.run()
