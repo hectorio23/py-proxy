@@ -1,10 +1,11 @@
 # Héctor Adán
 # https://github.com/hectorio23
 import socketserver
-import http.server
 import urllib.parse
+import http.server
 import http.client
 import json
+import ssl
 
 with open('./config.json', 'r') as config_file:
     file = json.load(config_file)
@@ -12,7 +13,7 @@ with open('./config.json', 'r') as config_file:
 class ServerHandler(http.server.BaseHTTPRequestHandler):
     ''' ServerHandler   
     This is a class that has some methods that allows to the
-    server Proxy to handle the request headers to be carefully 
+    server Proxy to handle the request headers to be carefully
     there out
     '''
     def do_GET(self):
@@ -32,11 +33,11 @@ class ServerHandler(http.server.BaseHTTPRequestHandler):
         # Crear una conexión al servidor de destino
         print(f"Connecting to host: { str(url_parts) }")
         print(self.path)
-        print(method)
-
         if method == 'CONNECT':
-            conn = http.client.HTTPSConnection(host, port=443)
+            # Desactivar la verificación de certificados SSL
+            conn = http.client.HTTPSConnection(host, port=443, context=ssl._create_unverified_context())
             conn.request(method, path, headers=self.headers)
+
 
 
         else:
@@ -72,6 +73,7 @@ class ProxyServer:
             cls._instance = super().__new__(cls)
             cls._instance.PORT = file['PORT']
             cls._instance.HOST = file['HOST']
+            
         return cls._instance
 
     def run(self):
