@@ -1,5 +1,3 @@
-# Héctor Adán
-# https://github.com/hectorio23
 import socketserver
 import urllib.parse
 import http.server
@@ -7,8 +5,15 @@ import http.client
 import json
 import ssl
 
+context = ssl.create_default_context()
+
 with open('./config.json', 'r') as config_file:
     file = json.load(config_file)
+
+class TLSServer(socketserver.ThreadingTCPServer):
+    def __init__(self, server_address, RequestHandlerClass, ssl_context):
+        super().__init__(server_address, RequestHandlerClass)
+        self.ssl_context = ssl_context
 
 class ServerHandler(http.server.BaseHTTPRequestHandler):
     ''' ServerHandler   
@@ -32,14 +37,12 @@ class ServerHandler(http.server.BaseHTTPRequestHandler):
         path = url_parts.path
         # Crear una conexión al servidor de destino
         print(f"Connecting to host: { str(url_parts) }")
+
         print(self.path)
         if method == 'CONNECT':
             # Desactivar la verificación de certificados SSL
-            conn = http.client.HTTPSConnection(host, port=443, context=ssl._create_unverified_context())
+            conn = http.client.HTTPSConnection(host, port=443, context=context)
             conn.request(method, path, headers=self.headers)
-
-
-
         else:
             conn = http.client.HTTPConnection(host)
             conn.request(method, path, body=self.rfile.read(
@@ -77,7 +80,10 @@ class ProxyServer:
         return cls._instance
 
     def run(self):
-        with socketserver.ThreadingTCPServer((self.HOST, self.PORT), ServerHandler) as server:
+        ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ssl_context.load_cert_chain(certfile="./server.crt", keyfile="server.key") 
+
+        with TLSServer((self.HOST, self.PORT), ServerHandler, ssl_context) as server:
             print(f"Server serving on ({self.HOST}, {self.PORT})")
             server.serve_forever()
 

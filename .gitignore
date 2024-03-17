@@ -1,1 +1,5 @@
 response.html
+src/create_key.sh
+src/server.crt
+src/server.csr
+src/server.key
