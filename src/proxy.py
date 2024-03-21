@@ -7,7 +7,7 @@ import ssl
 
 context = ssl.create_default_context()
 
-with open('./config.json', 'r') as config_file:
+with open('./src/config.json', 'r') as config_file:
     file = json.load(config_file)
 
 class TLSServer(socketserver.ThreadingTCPServer):
@@ -81,11 +81,12 @@ class ProxyServer:
 
     def run(self):
         ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        ssl_context.load_cert_chain(certfile="./server.crt", keyfile="server.key") 
+        ssl_context.load_cert_chain(certfile="./src/server.crt", keyfile="./src/server.key") 
 
         with TLSServer((self.HOST, self.PORT), ServerHandler, ssl_context) as server:
             print(f"Server serving on ({self.HOST}, {self.PORT})")
             server.serve_forever()
+
 
 if __name__ == '__main__':
     proxy_server = ProxyServer()
